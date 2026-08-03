@@ -237,9 +237,10 @@ DECL_FUNC_HOOK(sceMotionGetState, SceMotionState *state)
     return ret;
 }
 
+static uint8_t buffer[0x100];
+
 static int bluetoothCallback(int notifyId, int notifyCount, int notifyArg, void *common)
 {
-    static uint8_t buffer[0x100];
 
     SceBtEvent event;
 
@@ -336,11 +337,18 @@ static int callbackThread(SceSize args, void *argp)
 
     while (true)
     {
-        // Idle and handle callbacks until the exit flag is set
         uint32_t outBits;
-        int ret = ksceKernelWaitEventFlagCB(eventFlagUid, FLAG_EXIT, SCE_EVENT_WAITOR | SCE_EVENT_WAITCLEAR_PAT, &outBits, nullptr);
-        if (ret >= 0 && (outBits & FLAG_EXIT))
-            break;
+        SceUInt timeout = 1000000; // 1秒
+        int ret = ksceKernelWaitEventFlagCB(eventFlagUid, FLAG_EXIT,
+                      SCE_EVENT_WAITOR | SCE_EVENT_WAITCLEAR_PAT, &outBits, &timeout);
+
+        // 終了フラグが立ったらループを抜ける
+        if (ret >= 0) break;
+
+        // タイムアウトのたびに読み取り要求を出し直し、連鎖を維持する
+        for (int i = 0; i < MAX_CONTROLLERS; i++)
+            if (controllers[i])
+                controllers[i]->requestReport(HID_REQUEST_READ, buffer, sizeof(buffer));
     }
 
     // Clean up the callback
