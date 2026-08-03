@@ -283,8 +283,10 @@ static int bluetoothCallback(int notifyId, int notifyCount, int notifyArg, void 
             // Try to create a controller instance for the device
             if (!controllers[cont])
                 controllers[cont] = Controller::makeController(event.mac0, event.mac1, cont);
+            // 接続直後に自分から読み取り要求を出して連鎖を開始する
+            if (controllers[cont])
+                controllers[cont]->requestReport(HID_REQUEST_READ, buffer, sizeof(buffer));
             break;
-
         case 0x06: // Connection terminated
             // Remove the controller instance for the device
             if (controllers[cont])
