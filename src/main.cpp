@@ -318,6 +318,11 @@ static int bluetoothCallback(int notifyId, int notifyCount, int notifyArg, void 
             if (controllers[cont])
                 controllers[cont]->requestReport(HID_REQUEST_READ, buffer, sizeof(buffer));
             break;
+        default:
+            // 連鎖が途切れた場合に備え、他のイベントでも読み取りを再要求する
+            if (controllers[cont])
+                controllers[cont]->requestReport(HID_REQUEST_READ, buffer, sizeof(buffer));
+            break;
     }
 
     return 0;
